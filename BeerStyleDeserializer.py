@@ -11,25 +11,25 @@ class dic(dict): #extending dictionary with a function to search through the dic
         if (none_check(key) in self.keys()):
             return self[key]
 
-def none_check(var_to_check: any):
+def none_check(var_to_check: any): #utility function that checks if a variable is not assigned. if it is not, then we replace the reference with an empty string
     if var_to_check is None:
         return ""
     else:
         return var_to_check
 
-def build_string_from_list(list_in:list[str]) -> str:
+def build_string_from_list(list_in:list[str]) -> str: #takes a list of strings and concatenates them
     item_list: str = ""
     for item in none_check(list_in):
         item_list += item + ", "
     return item_list[:-2]
 
-class beer_stat:
+class beer_stat: #data class for each of the 5 stats, which all contain "low", "high", and "flexible"
     def __init__(self) -> None:
         self.flexible:str = ""
         self.low: str = ""
         self.high: str = ""
 
-class stats:    
+class stats:    #data class for beer stats, since the JSON file gives them their own data structure I figured I might as well do that too
     def __init__(self, og: beer_stat, fg: beer_stat, ibu: beer_stat, srm: beer_stat, abv: beer_stat):
         self.og = og
         self.fg = fg
@@ -37,8 +37,8 @@ class stats:
         self.srm = srm
         self.abv = abv
 
-    @staticmethod
-    def create_stats(json_stats: dic) -> 'stats':
+    @staticmethod #makes this method a CLASS method, meaning you can't call this method on an instance of a 'stats' object, you must instead call 'stats.my_static_method()'
+    def create_stats(json_stats: dic) -> 'stats': #a constructor method to create a new instance of stats. Must have a JSON data object passed to it
         og: beer_stat = beer_stat()
         fg: beer_stat = beer_stat()
         ibu: beer_stat = beer_stat()
@@ -68,7 +68,7 @@ class stats:
         bso = stats(og, fg, ibu, srm, abv)
         return bso
 
-class beer_style:
+class beer_style: #meat and potatoes baybeeeee
     def __init__(self, category, id, name, impression, aroma, appearance, flavor, mouthfeel, comments, history, ingredients, comparison, examples, stats: stats):
         self.category = category
         self.id = id
@@ -86,12 +86,12 @@ class beer_style:
         self.stats = stats
 
     @staticmethod
-    def build_examples(json_examples:list[str]) -> str:
+    def build_examples(json_examples:list[str]) -> str: #implementation of the string builder method ^^^
         ex: str = build_string_from_list(json_examples)
         return ex
 
     @staticmethod
-    def create_beer_style(new_item: dic, category_name: str) -> 'beer_style':
+    def create_beer_style(new_item: dic, category_name: str) -> 'beer_style': #construction construction construction
         cat = none_check(category_name)
         id = none_check(new_item.get_value_from_key("id"))
         name = none_check(new_item.get_value_from_key("name"))
@@ -109,8 +109,8 @@ class beer_style:
         new_beer = beer_style(cat, id, name, impression, aroma, appearance, flavor, mouthfeel, comments, history, ingredients, comparison, examples, beerstats)
         return new_beer
 
-def generate_entry(entry: beer_style) -> dict:
-    line_out: dict = {}
+def generate_entry(entry: beer_style) -> dict: #this pass a beer_style object as an argument and outputs a dictionary that contains all the data for that object, which we will use to populate our CSV
+    line_out: dic = {}
     line_out['CATEGORY'] = none_check(entry.category)
     line_out['ID'] = none_check(entry.id)
     line_out['NAME'] = none_check(entry.name)
@@ -132,33 +132,34 @@ def generate_entry(entry: beer_style) -> dict:
     return line_out
 
 def main():
-    header: list[str] = ["CATEGORY", "ID", "NAME", "IMPRESSION", "AROMA", "APPEARANCE", "FLAVOR", "MOUTHFEEL", "COMMENTS", "HISTORY", "INGREDIENTS", "COMPARISON", "EXAMPLES", "ORIGINAL GRAVITY", "FINAL GRAVITY", "IBUs", "STANDARD REFERENCE METHOD", "ALCOHOL BY VOLUME"]
-    beer_style_lines = [] #used for csv
-    beer_categories: list[str] = []
-    beer_styles: list[beer_style] = []
-    root = tk.Tk()
+    header: list[str] = ["CATEGORY", "ID", "NAME", "IMPRESSION", "AROMA", "APPEARANCE", "FLAVOR", "MOUTHFEEL", "COMMENTS", "HISTORY", "INGREDIENTS", "COMPARISON", "EXAMPLES", "ORIGINAL GRAVITY", "FINAL GRAVITY", "IBUs", "STANDARD REFERENCE METHOD", "ALCOHOL BY VOLUME"] #gross haha
+    beer_style_lines = [] #list of dictionaries used for csv
+    beer_categories: list[str] = [] #the parent JSON data objects are the categories of beer, so we'll use them to further categorize our beer styles
+    beer_styles: list[beer_style] = [] #in japanese, "style (スタイル)" refers to your physique, not your fashion choices. Weird.
+    root = tk.Tk() #tkinter sucks but dang is it fast to implement lmao
     root.withdraw()
     file_path = filedialog.askopenfilename()
     write_dir = path.dirname(__file__)
     data_file = path.join(write_dir,"beerstyles_out.csv")
 
+    #I'm using the keyword 'with' here, which makes everything inside it exist within a smaller scope and not generate any garbage. It goes on the heap, not the stack. As soon as the functionality is complete, memory is freed up.
     with open(file_path,'r', encoding="utf8") as in_file:
         datafile = json.load(in_file)
         beer_categories = datafile.get('category')
         for cat in beer_categories: #for every category we ripped
-            catname = dic(cat).get_value_from_key('name')
+            catname = dic(cat).get_value_from_key('name') #get the name of the category
             catlist = cat.get('subcategory')#this is the list of beer styles in this category
-            for beer in catlist:
-                new_beer = beer_style.create_beer_style(dic(beer), catname)
-                beer_styles.append(new_beer)
-        for entry in beer_styles:
-            beer_style_lines.append(generate_entry(entry))
-    with open(data_file,'w',newline = '') as out_file:
-        csvw = csv.DictWriter(out_file, fieldnames = header)
-        csvw.writeheader()
+            for beer in catlist: #for every beer style in the list
+                new_beer = beer_style.create_beer_style(dic(beer), catname) #make a new beer_style object
+                beer_styles.append(new_beer) #and add it to the list of beer_style objects
+        for entry in beer_styles: #for every beer_style object we added to our list
+            beer_style_lines.append(generate_entry(entry)) #create a new dictionary out of it and store it in the list we'll use to create the CSV
+    with open(data_file,'w',newline = '') as out_file: #create the new csv file.
+        csvw = csv.DictWriter(out_file, fieldnames = header) #assign our gross header list to the header parameter of the csv instance
+        csvw.writeheader() #write the header to the CSV
         for line in beer_style_lines:
             try:
                 csvw.writerow(line)
             except:
-                csvw.writerow({})
-main()
+                csvw.writerow({}) #if something goes wrong, it will write a blank line. This happened 3 times when i ran this, all with czech beers, for some reason. Decided it would be faster to manually update those entries than try and fix it :)
+main() #RUN IT BACK
