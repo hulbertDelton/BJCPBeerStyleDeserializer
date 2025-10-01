@@ -85,6 +85,9 @@ class beer_style: #meat and potatoes baybeeeee
         self.examples = examples
         self.stats = stats
 
+    def __str__(self):
+        ex = f"CATEGORY: {self.category}\nID #: {self.id}\nNAME: {self.name}\n    IMPRESSION: {self.impression}\n    AROMA: {self.aroma}\n    APPEARANCE: {self.appearance}\n    FLAVOR: {self.flavor}\n    MOUTHFEEL: {self.mouthfeel}\n    COMMENTS: {self.comments}\n    HISTORY: {self.history}\n    INGREDIENTS: {self.ingredients}\n    COMPARISON: {self.comparison}\n    EXAMPLES: {self.examples}\n    STATS: {self.stats}"
+        return ex
     @staticmethod
     def build_examples(json_examples:list[str]) -> str: #implementation of the string builder method ^^^
         ex: str = build_string_from_list(json_examples)
